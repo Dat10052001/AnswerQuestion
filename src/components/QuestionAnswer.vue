@@ -37,31 +37,31 @@ export default {
       currentQuestionIndex: 2,
       isRun: false,
       intervalId: null,
-      question: [],
-
-      // questions: [
-      //   {
-      //     question: '',
-      //     options: ['', '', '', ''],
-      //     correctIndex: 0
-      //   },
-      //   {
-      //     question: 'Câu hỏi 1?',
-      //     options: ['Đáp án', 'Đáp án đúng', 'Đáp án', 'Đáp án'],
-      //     correctIndex: 1
-      //   },
-      //   {
-      //     question: 'Câu hỏi 2?',
-      //     options: ['Đáp án đúng', 'Đáp án', 'Đáp án', 'Đáp án'],
-      //     correctIndex: 0 
-      //   },
-      // ],
+      // question: [],
+      // sample data
+      questions: [
+        {
+          question: '',
+          options: ['', '', '', ''],
+          correctIndex: 0
+        },
+        {
+          question: 'Câu hỏi 1?',
+          options: ['Đáp án', 'Đáp án đúng', 'Đáp án', 'Đáp án'],
+          correctIndex: 1
+        },
+        {
+          question: 'Câu hỏi 2?',
+          options: ['Đáp án đúng', 'Đáp án', 'Đáp án', 'Đáp án'],
+          correctIndex: 0 
+        },
+      ],
     };
   },
   mounted() {
     this.startTimer();
     this.$refs.buttons = this.$el.querySelectorAll('.option-button');
-    this.startFetching();
+    // this.startFetching();
     this.getQuestionBank();
   },
   methods: {
