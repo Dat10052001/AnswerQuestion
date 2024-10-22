@@ -10,7 +10,7 @@
         <p class="question-title">CÂU HỎI {{ currentQuestionIndex + 1}}</p>
         <img src="@/assets/bird.png" alt="Logo" class="bird-2" :class="{ 'display-none': !birdIsMoved }" />
         <div class="question-content">
-          <p :class="{ 'display-none': !isRun }">{{ questions[currentQuestionIndex]?.question }}</p>
+          <p v-if="isRun">{{ questions[currentQuestionIndex]?.question }}</p>
         </div>
       </div>
       <div class="options">
@@ -22,7 +22,7 @@
           @click="selectOption(option.isCorrect ? 'correct' : index)"
           ref="buttons"
         >
-          <p :class="{ 'display-none': !isRun }">{{ option.answer }}</p>
+          <p v-if="isRun">{{ option.answer }}</p>
         </button>
       </div>
       <div v-if="showConfirmPopup" class="popup">
@@ -42,10 +42,12 @@ import { getQuestionBank } from '@/utils/questionBank';
 import { getIndexQuestion, getProcessing } from '@/utils/exam';
 import { sendAnswer, getBird, updateBird} from '@/utils/examinee';
 
+const TIME_TO_ANSWER = 30;
+
 export default {
   data() {
     return {
-      timeRemaining: 30,
+      timeRemaining: TIME_TO_ANSWER,
       isAnswered: false,
       showConfirmPopup: false,
       currentQuestionIndex: 0,
@@ -65,13 +67,19 @@ export default {
     this.buttons = this.$el.querySelectorAll('.option-button');
     this.username = this.$cookies.get('username');
     this.startFetching();
-    this.getIndexQuestion();
     this.getQuestionBank();
-    this.getProcessing();
     this.getBird();
-    this.startTimer();
   },
   methods: {
+
+    async getProcessing() {
+      try 
+      { 
+        this.isRun = await getProcessing();
+      } catch (error) {
+          console.error("Lỗi khi cập nhật isRun:", error);
+      }
+    },
 
     confirmSelection(index) {
       this.showConfirmPopup = true;
@@ -101,9 +109,9 @@ export default {
 
       sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, this.answer);
 
-      this.timeRemaining = 0; 
       this.showConfirmPopup = false; 
       this.isAnswered = true;
+      this.timeRemaining = 1;
     },
 
     cancelSelection() {
@@ -112,11 +120,11 @@ export default {
 
     async getQuestionBank() {
       try {
-        this.questions = await getQuestionBank(); 
+        this.questions = await getQuestionBank();
+        this.mixOptions(); 
         } catch (error) {
           console.error("Lỗi khi lấy ngân hàng câu hỏi:", error);
         }
-        this.mixOptions();
     },
 
     // Random Answer A,B,C,D
@@ -171,15 +179,6 @@ export default {
       clearInterval(this.intervalId);
     },
 
-    async getProcessing() {
-      try 
-      { 
-        await getProcessing(this.isRun);
-      } catch (error) {
-          console.error("Lỗi khi cập nhật isRun:", error);
-      }
-    },
-
     async getIndexQuestion() {
       try {
             this.currentQuestionIndex = await getIndexQuestion();
@@ -188,14 +187,34 @@ export default {
         }
     },
 
-    startTimer() {
-      const timer = setInterval(() => {
-        this.timeRemaining--;
-        if (this.timeRemaining <= 0) {
-          this.timeRemaining = 0;
-          clearInterval(timer);
-        }
-      }, 1000);
+    startTimer(running) {
+      if(running) {
+        const timer = setInterval(() => {
+          if (this.timeRemaining <= 1) {
+            clearInterval(timer);
+            if (!this.isAnswered) {
+              this.showCorrectAnswer();
+              sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, 'NOT ANSWER');
+            }
+          }
+          this.timeRemaining--;
+        }, 1000);
+      }
+    },
+
+    showCorrectAnswer() {
+      const correctAnswer = this.questions[this.currentQuestionIndex]?.correctAnswer;
+      const correctButton = this.$refs.buttons.find(button => button.innerText === correctAnswer);
+      
+      if (correctButton) {
+        correctButton.classList.add('correct');
+      }
+
+      this.$refs.buttons.forEach(button => {
+        button.classList.add('disabled');
+      });
+
+      this.isAnswered = true;
     },
 
     selectOption(index) {
@@ -223,10 +242,17 @@ export default {
   },
 
   watch: {
-    currentQuestionIndex(newIndex) {
-      this.mixOptions(newIndex);
-      this.resetButtons(newIndex);
+    currentQuestionIndex(newIndex, oldIndex) {
+      if (newIndex !== oldIndex) {
+        this.timeRemaining = TIME_TO_ANSWER;
+        this.startTimer(this.isRun);
+        this.mixOptions();
+        this.resetButtons();
+      }
     },
+    isRun(newIndex) {
+      this.startTimer(newIndex);
+    }
   }
 };
 </script>
@@ -284,6 +310,7 @@ export default {
   font-size: 40px; 
   font-weight: bolder;
   text-align: center;
+  height: 200px;
 }
 
 .question-title {
