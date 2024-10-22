@@ -13,12 +13,33 @@ export async function login(username, password) {
   }
 }
 
-export async function sendAnswer(username, indexQuestion, question, answer) {
+export async function sendAnswer(username, indexQuestion, question, answer, isCorrected, usedBird, second) {
   try {
+    // Check xem đã trả lời chưa
+    const isAnswered = await readData(`answer/${username}/${indexQuestion}`);
+    if (isAnswered) {
+      return;
+    }
+
+    let point;
+    if (isCorrected) {
+      if (second <= 30 && second >= 21) point = 5;
+      else if (second <= 20 && second >= 16) point = 4;
+      else if (second <= 15 && second >= 11) point = 3;
+      else point = 1;
+
+      if (usedBird) point = point * 2;
+    } else {
+      if (isUsed) point = -5;
+      else point = 0;
+    }
+    
     await writeData(`answer/${username}/${indexQuestion}`, {
       question,
       answer,
     });
+
+    await writeData(`examinees/${username}/thulinhchinhphuc/plusScore`, point);
 
     // Viết hàm cộng điểm ở đây
   } catch (error) {
