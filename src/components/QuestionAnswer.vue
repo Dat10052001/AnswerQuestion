@@ -1,34 +1,28 @@
 <template>
   <div class="main">
     <img src="@/assets/right-logo.png" alt="Logo" class="sub-logo" />
-    <img src="@/assets/bird.png" alt="Logo" class="bird" :class="{ 'bird-moved': birdIsMoved }" @click="moveBird" />
-
     <div class="quiz-container">
-      <div class="timer">{{ timeRemaining }}</div>
+      <img src="@/assets/bird.png" alt="Logo" class="bird-1" :class="{ 'display-none': birdIsMoved }" @click="moveBird"/>
+      <div class="timer">
+        {{ timeRemaining }}
+      </div>
       <div class="question">
-        <p class="question-title">CÂU HỎI {{ currentQuestionIndex }}</p>
+        <p class="question-title">CÂU HỎI {{ currentQuestionIndex + 1}}</p>
+        <img src="@/assets/bird.png" alt="Logo" class="bird-2" :class="{ 'display-none': !birdIsMoved }" />
         <div class="question-content">
-          <p :class="{ 'display-none': !isRun }">{{ questions[currentQuestionIndex].question }}</p>
+          <p :class="{ 'display-none': !isRun }">{{ questions[currentQuestionIndex]?.question }}</p>
         </div>
       </div>
       <div class="options">
         <button 
-          v-for="(option, index) in questions[currentQuestionIndex].otherAnswer" 
+          v-for="(option, index) in mixedOptions" 
           :key="index" 
           class="option-button" 
-          :data-label="String.fromCharCode(65 + index)"
-          @click="selectOption(index)"
+          :data-label="option.label"
+          @click="selectOption(option.isCorrect ? 'correct' : index)"
           ref="buttons"
-          >
-          <p :class="{ 'display-none': !isRun }">{{ option }}</p>
-        </button>
-        <button 
-          key="correct"
-          class="option-button" 
-          data-label="D"
-          @click="selectOption(9)"
-          ref="correctButtons">
-          <p :class="{ 'display-none': !isRun }">{{ questions[currentQuestionIndex].correctAnswer }}</p>
+        >
+          <p :class="{ 'display-none': !isRun }">{{ option.answer }}</p>
         </button>
       </div>
     </div>
@@ -37,57 +31,84 @@
 
 <!-- JAVASCRIPT -->
 <script>
+import { getQuestionBank } from '@/utils/questionBank';
+import { getIndexQuestion, getProcessing } from '@/utils/exam';
+import { sendAnswer, getBird, updateBird} from '@/utils/examinee';
+
 export default {
   data() {
     return {
       timeRemaining: 30,
       isAnswered: false,
-      currentQuestionIndex: 1,
-      isRun: false,
+      currentQuestionIndex: 0,
+      isRun: true,
       intervalId: null,
       birdIsMoved: false,
       buttons: [],
       username: '',
-      // question: [],
+      questions: [null],
       answer: "",
-      // sample data
-      questions: [
-        {
-          correctAnswer: "Đảng Cộng sản Việt Nam, Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
-          otherAnswer: [
-            "Đảng Cộng sản Việt Nam, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
-            "Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
-            "Đảng Cộng sản Việt Nam, Nhà nước, các đoàn thể chính trị - xã hội",
-          ],
-          question: "Hệ thống chính trị ở Việt Nam hiện nay bao gồm?",
-          stt: 1
-        },
-        {
-          correctAnswer: "Đảng Cộng sản Việt Nam, Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
-          otherAnswer: [
-            "Đảng Cộng sản Việt Nam, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
-            "Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
-            "Đảng Cộng sản Việt Nam, Nhà nước, các đoàn thể chính trị - xã hội",
-          ],
-          question: "Hệ thống chính trị ở Việt Nam hiện nay bao gồm?",
-          stt: 1
-        },
-      ],
+      mixedOptions: [],
     };
   },
   mounted() {
-    // this.startTimer();
     this.buttons = this.$el.querySelectorAll('.option-button');
     this.username = this.$cookies.get('username');
+    this.startFetching();
+    this.getIndexQuestion();
+    this.getQuestionBank();
+    this.getProcessing();
+    this.getBird();
   },
   methods: {
-
-    moveBird() {
-      this.birdIsMoved = true;
+    async getQuestionBank() {
+      try {
+        this.questions = await getQuestionBank(); 
+        } catch (error) {
+          console.error("Lỗi khi lấy ngân hàng câu hỏi:", error);
+        }
+      this.mixOptions();
     },
 
-    getQuestionBank() {
-      //
+    // random answer
+    mixOptions() {
+      const question = this.questions[this.currentQuestionIndex];
+      const correctAnswer = {
+        answer: question?.correctAnswer,
+        isCorrect: true,
+        label: String.fromCharCode(65 + question?.stt),
+      };
+
+      const otherAnswers = question?.otherAnswer.map((answer, index) => ({
+        answer,
+        isCorrect: false,
+        label: String.fromCharCode(66 + index), 
+      }));
+
+      const allOptions = [...otherAnswers, correctAnswer];
+      this.mixedOptions = this.shuffleArray(allOptions);
+
+      this.mixedOptions.forEach((option, index) => {
+        option.label = String.fromCharCode(65 + index);
+      });
+      
+    },
+
+    shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    },
+
+    async getBird() {
+      this.birdIsMoved = await getBird(this.username);
+    },
+
+    async moveBird() {
+      this.birdIsMoved = true;
+      await updateBird(this.username);
     },
 
     startFetching() {
@@ -101,19 +122,26 @@ export default {
       clearInterval(this.intervalId);
     },
 
-    getProcessing() {
-      if (!this.isRun) {
-        this.resetButtons();
-      } 
-      else {
-        this.currentQuestionIndex = this.getIndexQuestion();
+    async getProcessing() {
+      try 
+      {
+        const option = this.isRun;
+        await getProcessing(option);
+        this.isRun = option;   
+      } catch (error) {
+          console.error("Lỗi khi cập nhật isRun:", error);
       }
     },
 
-    getIndexQuestion() {
-      //
+    async getIndexQuestion() {
+      try {
+            this.currentQuestionIndex = await getIndexQuestion();
+        } catch (error) {
+            console.error("Lỗi khi lấy index câu hỏi:", error);
+        }
     },
 
+    // ham dem thoi gian
     startTimer() {
       if(this.isRun) {
         const timer = setInterval(() => {
@@ -129,25 +157,38 @@ export default {
       if (this.isAnswered) return;
       this.isAnswered = true;
 
-      if (index === 9) {
-        this.answer = this.questions[this.currentQuestionIndex].correctAnswer + ' (TRUE)';
-        this.$refs.correctButtons.classList.add('correct');
-      }
-      else {
-        this.answer = this.questions[this.currentQuestionIndex].otherAnswer[index] + ' (FALSE)';
-        this.$refs.buttons[index].classList.add('wrong');
+      const isCorrect = index === 'correct';
+      const selectedOption = isCorrect ? this.questions[this.currentQuestionIndex]?.correctAnswer : this.mixedOptions[index].answer;
+
+      if (isCorrect) {
+        this.answer = selectedOption + ' (TRUE)';
+        const correctButton = this.$refs.buttons.find(button => button.innerText === this.questions[this.currentQuestionIndex]?.correctAnswer);
+
+        if (correctButton) {
+            correctButton.classList.add('correct');
+        }
+        
+      } else {
+        this.answer = selectedOption + ' (FALSE)';
+
+        if (this.$refs.buttons[index]) {
+          this.$refs.buttons[index].classList.add('wrong');
+        }
       }
 
       this.$refs.buttons.forEach(button => {
         button.classList.add('disabled');
       });
 
-      this.$refs.correctButtons.classList.add('disabled');
-
-      // sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, this.answer);
+      sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, this.answer);
     },
 
-    resetButtons() {
+    async sendAnswer(username, indexQuestion, question, answer) {
+      await sendAnswer(username, indexQuestion, question, answer);
+    },
+
+    // neu isRun tu true sang false , goi ham nay de xoa hieu ung, bo block buttons
+    resetButtons() { 
       this.buttons.forEach(button => {
         button.classList.remove('correct', 'wrong', 'disabled', 'no-hover');
         this.isAnswered = false;
@@ -194,9 +235,9 @@ export default {
   background-color: #DD241D;
   width: 12%;
   height: 60px;
-  line-height: 60px;
   font-weight: bolder;
   margin-bottom: 5%;
+  line-height: 60px;
 }
 
 .question {
@@ -212,6 +253,7 @@ export default {
   font-size: 24px; 
   font-weight: bolder;
   text-align: left;
+  padding-left: 30px;
 }
 
 .question-title {
@@ -277,6 +319,7 @@ export default {
   display: flex; 
   justify-content: center; 
   align-items: center;
+  font-size: 24px;
 }
 
 .option-button.wrong::before {
@@ -297,22 +340,19 @@ export default {
   display: none;
 }
 
-.bird {
-  position: absolute;
-  width: 180px;
-  height: auto;
-  top: 4%;
-  right: 34%;
-  transition: top 0.5s, left 0.5s;
+.bird-1 {
+  position: fixed;
+  width: 200px;
   cursor: pointer;
+  top: 0;
+  right: 32%;
 }
 
-.bird-moved {
-  position: absolute;
-  width: 180px;
-  height: auto;
-  right: 1%;
-  top: 22%;
+.bird-2 {
+  position: fixed;
+  width: 200px;
   cursor: not-allowed;
+  right: 0;
+  top: 15%;
 }
 </style>

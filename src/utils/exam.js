@@ -1,7 +1,7 @@
-import { readData, writeData } from "./firebase"
+import { readData, writeData } from "@/firebase"
 
 // Mỗi 500ms fetch lại dữ liệu để lấy index 1 lần 
-export async function getIndexQuestion(index) {
+export async function getIndexQuestion() {
     try {
         return await readData("exam/questionIndex");
     } catch (error) {

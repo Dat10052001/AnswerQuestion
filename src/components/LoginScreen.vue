@@ -15,6 +15,7 @@
   
 <!-- JAVASCRIPT -->
 <script>
+import { login } from '@/utils/examinee';
 export default {
     data() {
         return {
@@ -24,14 +25,22 @@ export default {
         };
     },
     methods: {
+        async loginUser() {
+            const isLoggedIn = await login(this.username, this.password);
+            if (isLoggedIn) {
+                this.$cookies.set('username', this.username);
+                this.$emit('login'); 
+                this.errorMessage = ''; 
+            } else {
+                this.errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng.';
+            }
+        },
         login() {
             if (!this.username || !this.password) {
                 this.errorMessage = 'Tên đăng nhập và mật khẩu là bắt buộc.';
                 return;
             }
-
-            this.$cookies.set('username', this.username);
-            this.$emit('login'); 
+            this.loginUser();
         },
     },
 };

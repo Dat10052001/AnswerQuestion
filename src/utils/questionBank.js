@@ -1,4 +1,4 @@
-import { readData } from "./firebase";
+import { readData } from "@/firebase";
 
 export async function getQuestionBank() {
   try {

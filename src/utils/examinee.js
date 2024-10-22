@@ -1,4 +1,4 @@
-import { readData, writeData } from "./firebase";
+import { readData, writeData } from "@/firebase";
 
 export async function login(username, password) {
   try {
@@ -27,13 +27,13 @@ export async function sendAnswer(username, indexQuestion, question, answer) {
 // câu trả lời đúng thì option là true
 // bird => sử dụng con chim thì bird là true
 
-export async function updatePoint(username, bird, option) {
-    try {
-        await writeData(`examinees/${username}/currentAddPoint`, point);
-    } catch (error) {
-        console.log("Xảy ra lỗi khi gửi điểm")
-    }
-}
+// export async function updatePoint(username, bird, option) {
+//     try {
+//         await writeData(`examinees/${username}/currentAddPoint`, point);
+//     } catch (error) {
+//         console.log("Xảy ra lỗi khi gửi điểm")
+//     }
+// }
 
 // Trả về false thì vẫn hiện con bồ câu
 export async function getBird(username) {
