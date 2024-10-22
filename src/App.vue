@@ -1,15 +1,31 @@
 <template>
-  <QuestionAnswer />
+  <LoginScreen v-if="!isLoggedIn" @login="handleLogin"/>
+  <QuestionAnswer v-else/>
 </template>
 
 <script>
 import QuestionAnswer from './components/QuestionAnswer.vue'
+import LoginScreen from './components/LoginScreen.vue'
 
 export default {
   name: 'App',
   components: {
-    QuestionAnswer
-  }
+    QuestionAnswer,
+    LoginScreen,
+  },
+  data() {
+    return {
+      isLoggedIn: false,
+    };
+  },
+  mounted() {
+    this.isLoggedIn = this.$cookies.isKey('username');
+  },
+  methods: {
+    handleLogin() {
+      this.isLoggedIn = true;
+    },
+  },
 }
 </script>
 

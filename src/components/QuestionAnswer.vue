@@ -1,108 +1,119 @@
 <template>
   <div class="main">
-    <img src="@/assets/logo.png" alt="Logo" class="sub-logo" />
+    <img src="@/assets/right-logo.png" alt="Logo" class="sub-logo" />
+    <img src="@/assets/bird.png" alt="Logo" class="bird" :class="{ 'bird-moved': birdIsMoved }" @click="moveBird" />
+
     <div class="quiz-container">
-    <div class="timer">{{ timeRemaining }}</div>
-    <div class="question">
-      <p class="question-title">CÂU HỎI {{ currentQuestionIndex }}</p>
-      <div class="question-content">
-        <p>{{ questions[currentQuestionIndex].question }}</p>
+      <div class="timer">{{ timeRemaining }}</div>
+      <div class="question">
+        <p class="question-title">CÂU HỎI {{ currentQuestionIndex }}</p>
+        <div class="question-content">
+          <p :class="{ 'display-none': !isRun }">{{ questions[currentQuestionIndex].question }}</p>
+        </div>
+      </div>
+      <div class="options">
+        <button 
+          v-for="(option, index) in questions[currentQuestionIndex].otherAnswer" 
+          :key="index" 
+          class="option-button" 
+          :data-label="String.fromCharCode(65 + index)"
+          @click="selectOption(index)"
+          ref="buttons"
+          >
+          <p :class="{ 'display-none': !isRun }">{{ option }}</p>
+        </button>
+        <button 
+          key="correct"
+          class="option-button" 
+          data-label="D"
+          @click="selectOption(9)"
+          ref="correctButtons">
+          <p :class="{ 'display-none': !isRun }">{{ questions[currentQuestionIndex].correctAnswer }}</p>
+        </button>
       </div>
     </div>
-    <div class="options">
-      <button 
-        v-for="(option, index) in questions[currentQuestionIndex].options" 
-        :key="index" 
-        class="option-button" 
-        :data-label="String.fromCharCode(65 + index)"
-        @click="selectOption(index)"
-        ref="buttons">
-        {{ option }}
-      </button>
-    </div>
-  </div>
   </div>
 </template>
 
 <!-- JAVASCRIPT -->
 <script>
-import { database } from '@/firebase';
-import { ref, onValue } from 'firebase/database';
-
 export default {
   data() {
     return {
       timeRemaining: 30,
       isAnswered: false,
-      currentQuestionIndex: 2,
+      currentQuestionIndex: 1,
       isRun: false,
       intervalId: null,
+      birdIsMoved: false,
+      buttons: [],
+      username: '',
       // question: [],
+      answer: "",
       // sample data
       questions: [
         {
-          question: '',
-          options: ['', '', '', ''],
-          correctIndex: 0
+          correctAnswer: "Đảng Cộng sản Việt Nam, Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
+          otherAnswer: [
+            "Đảng Cộng sản Việt Nam, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
+            "Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
+            "Đảng Cộng sản Việt Nam, Nhà nước, các đoàn thể chính trị - xã hội",
+          ],
+          question: "Hệ thống chính trị ở Việt Nam hiện nay bao gồm?",
+          stt: 1
         },
         {
-          question: 'Câu hỏi 1?',
-          options: ['Đáp án', 'Đáp án đúng', 'Đáp án', 'Đáp án'],
-          correctIndex: 1
-        },
-        {
-          question: 'Câu hỏi 2?',
-          options: ['Đáp án đúng', 'Đáp án', 'Đáp án', 'Đáp án'],
-          correctIndex: 0 
+          correctAnswer: "Đảng Cộng sản Việt Nam, Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
+          otherAnswer: [
+            "Đảng Cộng sản Việt Nam, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
+            "Nhà nước, Mặt trận Tổ quốc và các đoàn thể chính trị - xã hội",
+            "Đảng Cộng sản Việt Nam, Nhà nước, các đoàn thể chính trị - xã hội",
+          ],
+          question: "Hệ thống chính trị ở Việt Nam hiện nay bao gồm?",
+          stt: 1
         },
       ],
     };
   },
   mounted() {
-    this.startTimer();
-    this.$refs.buttons = this.$el.querySelectorAll('.option-button');
-    // this.startFetching();
-    this.getQuestionBank();
+    // this.startTimer();
+    this.buttons = this.$el.querySelectorAll('.option-button');
+    this.username = this.$cookies.get('username');
   },
   methods: {
+
+    moveBird() {
+      this.birdIsMoved = true;
+    },
+
     getQuestionBank() {
-      const questionsRef = ref(database, 'questions');
-      onValue(questionsRef, (snapshot) => {
-        this.questions = snapshot.val();
-      });
+      //
     },
-    fetchIsRun() {
-      fetch('URL_CỦA_API')
-        .then(response => response.json())
-        .then(data => {
-          this.isRun = data.isRun;
-        })
-        .catch(error => {
-          console.error('Lỗi khi fetch dữ liệu:', error);
-        });
-    },
+
     startFetching() {
       this.intervalId = setInterval(() => {
-        this.fetchIsRun();
         this.getProcessing();
         this.getIndexQuestion();
       }, 500);
     },
+
     stopFetching() {
       clearInterval(this.intervalId);
     },
+
     getProcessing() {
       if (!this.isRun) {
-        this.currentQuestionIndex = 0;
         this.resetButtons();
       } 
       else {
         this.currentQuestionIndex = this.getIndexQuestion();
       }
     },
+
     getIndexQuestion() {
-      return this.currentQuestionIndex;
+      //
     },
+
     startTimer() {
       if(this.isRun) {
         const timer = setInterval(() => {
@@ -113,15 +124,17 @@ export default {
         }, 1000);
       }
     },
+
     selectOption(index) {
       if (this.isAnswered) return;
-
       this.isAnswered = true;
-      const currentQuestion = this.questions[this.currentQuestionIndex];
 
-      if (index === currentQuestion.correctIndex) {
-        this.$refs.buttons[index].classList.add('correct');
-      } else {
+      if (index === 9) {
+        this.answer = this.questions[this.currentQuestionIndex].correctAnswer + ' (TRUE)';
+        this.$refs.correctButtons.classList.add('correct');
+      }
+      else {
+        this.answer = this.questions[this.currentQuestionIndex].otherAnswer[index] + ' (FALSE)';
         this.$refs.buttons[index].classList.add('wrong');
       }
 
@@ -129,29 +142,19 @@ export default {
         button.classList.add('disabled');
       });
 
-      const answer = this.questions[this.currentQuestionIndex].options[index];
-      this.sendAnswer(this.studentId, this.currentQuestionIndex, answer);
+      this.$refs.correctButtons.classList.add('disabled');
+
+      // sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, this.answer);
     },
+
     resetButtons() {
-      this.$refs.buttons.forEach(button => {
+      this.buttons.forEach(button => {
         button.classList.remove('correct', 'wrong', 'disabled', 'no-hover');
         this.isAnswered = false;
       });
     },
-    sendAnswer(studentId, questionIndex, answer) {
-      console.log(`Gửi câu trả lời: Sinh viên ${studentId}, câu hỏi ${questionIndex}, đáp án: ${answer}`);
-
-      const answersRef = ref(database, `answers/${studentId}/${questionIndex}`);
-      answersRef.set({
-        answer: answer,
-        timestamp: new Date().toISOString(),
-      }).then(() => {
-        console.log('Câu trả lời đã được gửi thành công!');
-      }).catch((error) => {
-        console.error('Lỗi khi gửi câu trả lời:', error);
-      });
-    },
   },
+
   beforeUnmount() {
     this.stopFetching();
   },
@@ -173,8 +176,8 @@ export default {
   right: 20px;
   width: 20%;
   height: 120px;
-  border: 1px solid red;
 }
+
 .quiz-container {
   display: flex;
   flex-direction: column;
@@ -237,7 +240,7 @@ export default {
   border-radius: 25px;
   padding: 15px;
   cursor: pointer; 
-  font-size: 24px;
+  font-size: 16px;
   position: relative;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   height: 85px;
@@ -256,6 +259,7 @@ export default {
 }
 
 .option-button.disabled {
+  pointer-events: none;
   cursor: not-allowed;
 }
 
@@ -287,5 +291,28 @@ export default {
   padding-left: 25%;
   color: #004AAD;
   font-weight: bolder;
+}
+
+.display-none {
+  display: none;
+}
+
+.bird {
+  position: absolute;
+  width: 180px;
+  height: auto;
+  top: 4%;
+  right: 34%;
+  transition: top 0.5s, left 0.5s;
+  cursor: pointer;
+}
+
+.bird-moved {
+  position: absolute;
+  width: 180px;
+  height: auto;
+  right: 1%;
+  top: 22%;
+  cursor: not-allowed;
 }
 </style>
