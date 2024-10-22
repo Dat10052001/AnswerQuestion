@@ -70,7 +70,7 @@ export default {
         this.mixOptions();
     },
 
-    // random answer
+    // Random Answer A,B,C,D
     mixOptions() {
       const question = this.questions[this.currentQuestionIndex];
       const correctAnswer = {
@@ -185,7 +185,6 @@ export default {
       await sendAnswer(username, indexQuestion, question, answer);
     },
 
-    // neu isRun tu true sang false , goi ham nay de xoa hieu ung, bo block buttons
     resetButtons() { 
       this.$refs.buttons.forEach(button => {
         button.classList.remove('correct', 'wrong', 'disabled');
