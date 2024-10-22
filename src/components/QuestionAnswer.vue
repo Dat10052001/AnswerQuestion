@@ -15,14 +15,14 @@
       </div>
       <div class="options">
         <button 
-          v-for="(option, index) in mixedOptions" 
-          :key="index" 
+          v-for="(option, label) in questions[currentQuestionIndex]?.answers" 
+          :key="label" 
           class="option-button" 
-          :data-label="option.label"
-          @click="selectOption(option.isCorrect ? 'correct' : index)"
+          :data-label="label"
+          @click="selectOption(label)"
           ref="buttons"
         >
-          <p v-if="isRun">{{ option.answer }}</p>
+          <p v-if="isRun">{{ option }}</p>
         </button>
       </div>
       <div v-if="showConfirmPopup" class="popup">
@@ -51,16 +51,16 @@ export default {
       isAnswered: false,
       showConfirmPopup: false,
       currentQuestionIndex: 0,
-      isRun: true,
+      isRun: null,
       intervalId: null,
-      birdIsMoved: false,
+      birdIsMoved: null,
       buttons: [],
       username: '',
       questions: [null],
       answer: "",
-      mixedOptions: [],
-      correctAnswer: [],
-      otherAnswers: [],
+      answerChosen: null,
+      answerTemp: null,
+      isCorrect: null,
     };
   },
   mounted() {
@@ -86,28 +86,43 @@ export default {
       this.selectedOptionIndex = index; 
     },
 
-    proceedWithSelection() {
-      const isCorrect = this.selectedOptionIndex === 'correct';
-      const selectedOption = isCorrect ? this.questions[this.currentQuestionIndex]?.correctAnswer : this.mixedOptions[this.selectedOptionIndex].answer;
+    charCodeToNumber(char) {
+      switch(char){
+        case 'A': return 0; 
+        case 'B': return 1; 
+        case 'C': return 2; 
+        case 'D': return 3; 
+        default: return;
+      }
+    },
 
-      if (isCorrect) {
-        this.answer = selectedOption + ' (TRUE)';
-        const correctButton = this.$refs.buttons.find(button => button.innerText === this.questions[this.currentQuestionIndex]?.correctAnswer);
-        if (correctButton) {
-          correctButton.classList.add('correct');
-        }
-      } else {
-        this.answer = selectedOption + ' (FALSE)';
-        if (this.$refs.buttons[this.selectedOptionIndex]) {
-          this.$refs.buttons[this.selectedOptionIndex].classList.add('wrong');
-        }
+    proceedWithSelection() {
+      this.answerChosen = this.answerTemp;
+
+      const indexCorrect = this.charCodeToNumber(this.answerChosen);
+
+      if(this.answerChosen == this.questions[this.currentQuestionIndex]?.correctAnswer) {
+        this.$refs.buttons[indexCorrect].classList.add('correct');
+        this.isCorrect = true;
+      }
+      else {
+        this.$refs.buttons[indexCorrect].classList.add('wrong');
+        this.isCorrect = false;
       }
 
       this.$refs.buttons.forEach(button => {
         button.classList.add('disabled');
       });
 
-      sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, this.answer);
+      sendAnswer(
+        this.username, 
+        this.currentQuestionIndex, 
+        this.questions[this.currentQuestionIndex].question, 
+        this.answerChosen,
+        this.isCorrect,
+        this.birdIsMoved,
+        this.timeRemaining,
+      );
 
       this.showConfirmPopup = false; 
       this.isAnswered = true;
@@ -121,42 +136,9 @@ export default {
     async getQuestionBank() {
       try {
         this.questions = await getQuestionBank();
-        this.mixOptions(); 
         } catch (error) {
           console.error("Lỗi khi lấy ngân hàng câu hỏi:", error);
         }
-    },
-
-    // Random Answer A,B,C,D
-    mixOptions() {
-      const question = this.questions[this.currentQuestionIndex];
-      this.correctAnswer = {
-        answer: question?.correctAnswer,
-        isCorrect: true,
-        label: String.fromCharCode(65 + question?.stt),
-      };
-
-      this.otherAnswers = question?.otherAnswer?.map((answer, index) => ({
-        answer,
-        isCorrect: false,
-        label: String.fromCharCode(66 + index), 
-      })) || [];
-
-      const allOptions = [...this.otherAnswers, this.correctAnswer];
-      this.mixedOptions = this.shuffleArray(allOptions);
-
-      this.mixedOptions.forEach((option, index) => {
-        option.label = String.fromCharCode(65 + index);
-      });
-      
-    },
-
-    shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-      return array;
     },
 
     async getBird() {
@@ -188,13 +170,24 @@ export default {
     },
 
     startTimer(running) {
-      if(running) {
+      if(!running) {
+        return;
+      }
+      else {
         const timer = setInterval(() => {
           if (this.timeRemaining <= 1) {
             clearInterval(timer);
             if (!this.isAnswered) {
               this.showCorrectAnswer();
-              sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, 'NOT ANSWER');
+              sendAnswer(
+                this.username, 
+                this.currentQuestionIndex, 
+                this.questions[this.currentQuestionIndex].question, 
+                'NOT ANSWER',
+                false,
+                this.birdIsMoved,
+                0,
+              );
             }
           }
           this.timeRemaining--;
@@ -203,12 +196,8 @@ export default {
     },
 
     showCorrectAnswer() {
-      const correctAnswer = this.questions[this.currentQuestionIndex]?.correctAnswer;
-      const correctButton = this.$refs.buttons.find(button => button.innerText === correctAnswer);
-      
-      if (correctButton) {
-        correctButton.classList.add('correct');
-      }
+      const indexCorrect = this.charCodeToNumber(this.questions[this.currentQuestionIndex]?.correctAnswer);
+      this.$refs.buttons[indexCorrect].classList.add('correct');
 
       this.$refs.buttons.forEach(button => {
         button.classList.add('disabled');
@@ -217,14 +206,15 @@ export default {
       this.isAnswered = true;
     },
 
-    selectOption(index) {
+    selectOption(label) {
       if (this.isAnswered) return;
-      this.selectedOptionIndex = index;
+
+      this.answerTemp = label;
       this.showConfirmPopup = true;
     },
 
-    async sendAnswer(username, indexQuestion, question, answer) {
-      await sendAnswer(username, indexQuestion, question, answer);
+    async sendAnswer(username, indexQuestion, question, answer, result, useBird, second) {
+      await sendAnswer(username, indexQuestion, question, answer, result, useBird, second);
     },
 
     resetButtons() { 
@@ -245,12 +235,11 @@ export default {
     currentQuestionIndex(newIndex, oldIndex) {
       if (newIndex !== oldIndex) {
         this.timeRemaining = TIME_TO_ANSWER;
-        this.startTimer(this.isRun);
-        this.mixOptions();
         this.resetButtons();
       }
     },
     isRun(newIndex) {
+      this.timeRemaining = TIME_TO_ANSWER;
       this.startTimer(newIndex);
     }
   }
@@ -310,7 +299,7 @@ export default {
   font-size: 40px; 
   font-weight: bolder;
   text-align: center;
-  height: 200px;
+  height: auto;
 }
 
 .question-title {

@@ -77,10 +77,10 @@ export default {
 
 .login-container>input {
     width: 100%; 
-    padding: 10px;
+    padding: 2%;
     margin-bottom: 10%;
     border: 1px solid #ccc;
-    border-radius: 4px;
+    border-radius: 15px;
     box-sizing: border-box;
     font-size: 40px;
 }
