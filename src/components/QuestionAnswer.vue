@@ -67,7 +67,7 @@ export default {
         } catch (error) {
           console.error("Lỗi khi lấy ngân hàng câu hỏi:", error);
         }
-      this.mixOptions();
+        this.mixOptions();
     },
 
     // random answer
@@ -124,10 +124,8 @@ export default {
 
     async getProcessing() {
       try 
-      {
-        const option = this.isRun;
-        await getProcessing(option);
-        this.isRun = option;   
+      { 
+        await getProcessing(this.isRun);
       } catch (error) {
           console.error("Lỗi khi cập nhật isRun:", error);
       }
@@ -189,8 +187,8 @@ export default {
 
     // neu isRun tu true sang false , goi ham nay de xoa hieu ung, bo block buttons
     resetButtons() { 
-      this.buttons.forEach(button => {
-        button.classList.remove('correct', 'wrong', 'disabled', 'no-hover');
+      this.$refs.buttons.forEach(button => {
+        button.classList.remove('correct', 'wrong', 'disabled');
         this.isAnswered = false;
       });
     },
@@ -199,6 +197,13 @@ export default {
   beforeUnmount() {
     this.stopFetching();
   },
+
+  watch: {
+    currentQuestionIndex(newIndex) {
+      this.mixOptions(newIndex);
+      this.resetButtons(newIndex);
+    },
+  }
 };
 </script>
 
@@ -229,6 +234,8 @@ export default {
 }
 
 .timer {
+  position: fixed;
+  top: 15%;
   font-size: 40px;
   color: white;
   border-radius: 50px;
@@ -237,10 +244,11 @@ export default {
   height: 60px;
   font-weight: bolder;
   margin-bottom: 5%;
-  line-height: 60px;
+  line-height: 50px;
 }
 
 .question {
+  margin-top: 10%;
   width: 80%;
 }
 
@@ -250,7 +258,7 @@ export default {
   border-radius: 25px;
   padding: 15px 20px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: 24px; 
+  font-size: 18px; 
   font-weight: bolder;
   text-align: left;
   padding-left: 30px;
@@ -342,17 +350,17 @@ export default {
 
 .bird-1 {
   position: fixed;
-  width: 200px;
+  width: 15%;
   cursor: pointer;
-  top: 0;
-  right: 32%;
+  top: 1%;
+  right: 35%;
 }
 
 .bird-2 {
   position: fixed;
-  width: 200px;
+  width: 15%;
   cursor: not-allowed;
   right: 0;
-  top: 15%;
+  top: 21%;
 }
 </style>

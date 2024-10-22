@@ -65,7 +65,7 @@ export default {
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     width: 30%;
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .login-container>label {
@@ -82,7 +82,7 @@ export default {
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .login-container>button {
@@ -93,7 +93,7 @@ export default {
     border-radius: 4px;
     background-color: #007bff;
     color: white;
-    font-size: 18px;
+    font-size: 14px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
