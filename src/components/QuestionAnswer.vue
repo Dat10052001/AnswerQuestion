@@ -25,6 +25,13 @@
           <p :class="{ 'display-none': !isRun }">{{ option.answer }}</p>
         </button>
       </div>
+      <div v-if="showConfirmPopup" class="popup">
+        <div class="popup-content">
+          <p>Bạn có chắc chắn muốn chọn đáp án này?</p>
+          <button class="button-confirm yes-btn" @click="proceedWithSelection">Có</button>
+          <button class="button-confirm no-btn" @click="cancelSelection">Không</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -40,6 +47,7 @@ export default {
     return {
       timeRemaining: 30,
       isAnswered: false,
+      showConfirmPopup: false,
       currentQuestionIndex: 0,
       isRun: true,
       intervalId: null,
@@ -49,6 +57,8 @@ export default {
       questions: [null],
       answer: "",
       mixedOptions: [],
+      correctAnswer: [],
+      otherAnswers: [],
     };
   },
   mounted() {
@@ -59,8 +69,47 @@ export default {
     this.getQuestionBank();
     this.getProcessing();
     this.getBird();
+    this.startTimer();
   },
   methods: {
+
+    confirmSelection(index) {
+      this.showConfirmPopup = true;
+      this.selectedOptionIndex = index; 
+    },
+
+    proceedWithSelection() {
+      const isCorrect = this.selectedOptionIndex === 'correct';
+      const selectedOption = isCorrect ? this.questions[this.currentQuestionIndex]?.correctAnswer : this.mixedOptions[this.selectedOptionIndex].answer;
+
+      if (isCorrect) {
+        this.answer = selectedOption + ' (TRUE)';
+        const correctButton = this.$refs.buttons.find(button => button.innerText === this.questions[this.currentQuestionIndex]?.correctAnswer);
+        if (correctButton) {
+          correctButton.classList.add('correct');
+        }
+      } else {
+        this.answer = selectedOption + ' (FALSE)';
+        if (this.$refs.buttons[this.selectedOptionIndex]) {
+          this.$refs.buttons[this.selectedOptionIndex].classList.add('wrong');
+        }
+      }
+
+      this.$refs.buttons.forEach(button => {
+        button.classList.add('disabled');
+      });
+
+      sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, this.answer);
+
+      this.timeRemaining = 0; 
+      this.showConfirmPopup = false; 
+      this.isAnswered = true;
+    },
+
+    cancelSelection() {
+      this.showConfirmPopup = false; 
+    },
+
     async getQuestionBank() {
       try {
         this.questions = await getQuestionBank(); 
@@ -73,19 +122,19 @@ export default {
     // Random Answer A,B,C,D
     mixOptions() {
       const question = this.questions[this.currentQuestionIndex];
-      const correctAnswer = {
+      this.correctAnswer = {
         answer: question?.correctAnswer,
         isCorrect: true,
         label: String.fromCharCode(65 + question?.stt),
       };
 
-      const otherAnswers = question?.otherAnswer.map((answer, index) => ({
+      this.otherAnswers = question?.otherAnswer?.map((answer, index) => ({
         answer,
         isCorrect: false,
         label: String.fromCharCode(66 + index), 
-      }));
+      })) || [];
 
-      const allOptions = [...otherAnswers, correctAnswer];
+      const allOptions = [...this.otherAnswers, this.correctAnswer];
       this.mixedOptions = this.shuffleArray(allOptions);
 
       this.mixedOptions.forEach((option, index) => {
@@ -139,46 +188,20 @@ export default {
         }
     },
 
-    // ham dem thoi gian
     startTimer() {
-      if(this.isRun) {
-        const timer = setInterval(() => {
-          this.timeRemaining--;
-          if (this.timeRemaining <= 0) {
-            clearInterval(timer);
-          }
-        }, 1000);
-      }
+      const timer = setInterval(() => {
+        this.timeRemaining--;
+        if (this.timeRemaining <= 0) {
+          this.timeRemaining = 0;
+          clearInterval(timer);
+        }
+      }, 1000);
     },
 
     selectOption(index) {
       if (this.isAnswered) return;
-      this.isAnswered = true;
-
-      const isCorrect = index === 'correct';
-      const selectedOption = isCorrect ? this.questions[this.currentQuestionIndex]?.correctAnswer : this.mixedOptions[index].answer;
-
-      if (isCorrect) {
-        this.answer = selectedOption + ' (TRUE)';
-        const correctButton = this.$refs.buttons.find(button => button.innerText === this.questions[this.currentQuestionIndex]?.correctAnswer);
-
-        if (correctButton) {
-            correctButton.classList.add('correct');
-        }
-        
-      } else {
-        this.answer = selectedOption + ' (FALSE)';
-
-        if (this.$refs.buttons[index]) {
-          this.$refs.buttons[index].classList.add('wrong');
-        }
-      }
-
-      this.$refs.buttons.forEach(button => {
-        button.classList.add('disabled');
-      });
-
-      sendAnswer(this.username, this.currentQuestionIndex, this.questions[this.currentQuestionIndex].question, this.answer);
+      this.selectedOptionIndex = index;
+      this.showConfirmPopup = true;
     },
 
     async sendAnswer(username, indexQuestion, question, answer) {
@@ -186,10 +209,12 @@ export default {
     },
 
     resetButtons() { 
-      this.$refs.buttons.forEach(button => {
-        button.classList.remove('correct', 'wrong', 'disabled');
-        this.isAnswered = false;
-      });
+      if (this.$refs.buttons && Array.isArray(this.$refs.buttons)) {
+        this.$refs.buttons.forEach(button => {
+          button.classList.remove('correct', 'wrong', 'disabled');
+        });
+      }
+      this.isAnswered = false;
     },
   },
 
@@ -217,10 +242,9 @@ export default {
 }
 .sub-logo{
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 2%;
+  right: 2%;
   width: 20%;
-  height: 120px;
 }
 
 .quiz-container {
@@ -234,16 +258,16 @@ export default {
 
 .timer {
   position: fixed;
-  top: 15%;
-  font-size: 40px;
+  top: 20%;
+  font-size: 80px;
   color: white;
   border-radius: 50px;
   background-color: #DD241D;
-  width: 12%;
-  height: 60px;
+  width: 15%;
+  height: 100px;
   font-weight: bolder;
   margin-bottom: 5%;
-  line-height: 50px;
+  line-height: 80px;
 }
 
 .question {
@@ -255,16 +279,15 @@ export default {
   background-color: #003DA5;
   color: white; 
   border-radius: 25px;
-  padding: 15px 20px;
+  padding: 2% 3%;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  font-size: 18px; 
+  font-size: 40px; 
   font-weight: bolder;
-  text-align: left;
-  padding-left: 30px;
+  text-align: center;
 }
 
 .question-title {
-  font-size: 28px; 
+  font-size: 40px; 
   font-weight: 700;
   color: #DD241D;
   margin: 0;
@@ -276,7 +299,7 @@ export default {
 .options {
   display: grid; 
   grid-template-columns: repeat(2, 1fr); 
-  gap: 20px; 
+  gap: 2%; 
   margin-top: 2%;
   width: 80%;
 }
@@ -286,13 +309,15 @@ export default {
   align-items: center; 
   background-color: white;
   border: none;
-  border-radius: 25px;
-  padding: 15px;
+  border-radius: 50px;
   cursor: pointer; 
-  font-size: 16px;
+  font-size: 35px;
   position: relative;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  height: 85px;
+  height: 170px;
+  margin-top: 2%;
+  padding: 2% 0;
+  padding-right: 4%;
 }
 
 .option-button:hover {
@@ -320,13 +345,13 @@ export default {
   transform: translateY(-50%); 
   background-color: #003DA5; 
   color: white; 
-  border-radius: 25px;
+  border-radius: 50px;
   width: 20%; 
   height: 100%; 
   display: flex; 
   justify-content: center; 
   align-items: center;
-  font-size: 24px;
+  font-size: 40px;
 }
 
 .option-button.wrong::before {
@@ -351,8 +376,9 @@ export default {
   position: fixed;
   width: 15%;
   cursor: pointer;
-  top: 1%;
+  top: 5%;
   right: 35%;
+  z-index: 99;
 }
 
 .bird-2 {
@@ -361,5 +387,56 @@ export default {
   cursor: not-allowed;
   right: 0;
   top: 21%;
+  z-index: 99;
+}
+
+.popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+
+.popup-content {
+  background: white;
+  padding: 5% 2%;
+  border-radius: 25px;
+  text-align: center;
+  width: 45%;
+  font-size: 40px;
+}
+
+.button-confirm {
+  width: 20%;
+  font-size: 35px;
+  font-weight: bolder;
+  padding: 2%;
+  border-radius: 15px;
+  border: none;
+  margin: 0 2%;
+  margin-top: 4%;
+  color: white;
+}
+
+.yes-btn {
+  background-color: green;
+}
+
+.yes-btn:hover {
+  background-color: rgb(2, 218, 2);
+}
+
+.no-btn {
+  background-color: red;
+}
+
+.no-btn:hover {
+  background-color: rgb(238, 67, 67);
 }
 </style>

@@ -61,17 +61,17 @@ export default {
 
 .login-container {
     background-color: white;
-    padding: 5% 50px;
-    border-radius: 8px;
+    padding: 6% 5%;
+    border-radius: 5%;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     width: 30%;
-    font-size: 14px;
 }
 
 .login-container>label {
     display: block;
     margin-bottom: 2%;
     font-weight: bold;
+    font-size: 35px;
     text-align: start;
 }
 
@@ -82,18 +82,18 @@ export default {
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: 40px;
 }
 
 .login-container>button {
     margin-top: 20px;
     width: 100%;
-    padding: 10px;
+    padding: 2% 0;
     border: none;
-    border-radius: 4px;
+    border-radius: 15px;
     background-color: #007bff;
     color: white;
-    font-size: 14px;
+    font-size: 40px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
