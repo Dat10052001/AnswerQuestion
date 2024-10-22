@@ -30,7 +30,7 @@ export async function sendAnswer(username, indexQuestion, question, answer, isCo
 
       if (usedBird) point = point * 2;
     } else {
-      if (isUsed) point = -5;
+      if (usedBird) point = -5;
       else point = 0;
     }
     
@@ -40,8 +40,6 @@ export async function sendAnswer(username, indexQuestion, question, answer, isCo
     });
 
     await writeData(`examinees/${username}/thulinhchinhphuc/plusScore`, point);
-
-    // Viết hàm cộng điểm ở đây
   } catch (error) {
     console.log("lỗi khi gửi câu trả lời");
   }
