@@ -15,7 +15,7 @@ export async function login(username, password) {
 
 export async function sendAnswer(username, indexQuestion, question, answer, isCorrected, usedBird, second) {
   try {
-    // Check xem đã trả lời chưa
+    //Check xem đã trả lời chưa
     const isAnswered = await readData(`answer/${username}/${indexQuestion}`);
     if (isAnswered) {
       return;
@@ -29,10 +29,11 @@ export async function sendAnswer(username, indexQuestion, question, answer, isCo
       else point = 1;
 
       if (usedBird) point = point * 2;
-    } else {
-      if (usedBird) point = -5;
-      else point = 0;
-    }
+      } 
+      else {
+        if (usedBird) point = -5;
+        else point = 0;
+      }
     
     await writeData(`answer/${username}/${indexQuestion}`, {
       question,

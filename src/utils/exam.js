@@ -13,9 +13,9 @@ export async function getIndexQuestion() {
 // Khi ấn show câu hỏi => cập nhật isRun thành true
 export async function getProcessing() {
     try {
-        return readData("exam/isRun");
+        return await readData("exam/isRun");
     } catch (error) {
         console.log("Lỗi khi cập nhật isRun")
-        return null;
+        return false;
     }
 }
